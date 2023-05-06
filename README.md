@@ -17,5 +17,9 @@ rosdep update --include-eol-distros
 rosdep install --from-paths src -y --ignore-src
 colcon build
 source install/setup.bash
-ros2 launch ariac_gazebo ariac.launch.py trial_name:=human_kitting
+ros2 launch ariac_gazebo ariac.launch.py trial_name:=final
+ros2 launch robot_commander robot_commander.launch.py
+ros2 run robot_commander floor_robot_main.py
+ros2 launch rwa4_group5 rwa4_node.launch.py
+
 ```

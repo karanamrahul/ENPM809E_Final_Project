@@ -7,6 +7,9 @@ from ariac_msgs.msg import *
 import PyKDL
 from geometry_msgs.msg import Pose
 from rclpy.qos import QoSProfile, QoSReliabilityPolicy
+import yaml
+from ament_index_python.packages import get_package_share_directory
+import os
 
 
 
@@ -107,9 +110,28 @@ class Rwa4Node(Node):
         self._part_types = {"10": "Battery", "11":"Pump", "12": "Sensor", "13":"Regulator"}
         
         
-        # self._orders_list = {}  # Dictionary to store the orders
+        parameter_file = os.path.join(
+            get_package_share_directory('rwa4_group5'),
+            'config',
+            'order.yaml')
+        self.declare_parameter('order_id', '')
+        self.get_logger().info(f"Parameter file: {parameter_file}")
+        self.get_logger().info(f"Declared parameter 'order_id' with default value: {self.get_parameter('order_id').value}")
+        self._order_id = self.get_parameter('order_id').value
+        if not self._order_id:
+            self._order_id = self.read_yaml(parameter_file)['rwa4']['ros__parameters']['order_id']
+           
+        self._order_id = int(self._order_id)
         
+        self.get_logger().info(f"Got parameter 'order_id': {type(self._order_id)}")
 
+    def read_yaml(self, path):
+        with open(path, "r") as stream:
+            try:
+                return yaml.safe_load(stream)
+            except yaml.YAMLError:
+                self.get_logger().error("Unable to read configuration file")
+                return {}
     class OrderClass:
         ''' This class represents the KittingOrder class for the RWA-4 assignment
                
@@ -144,6 +166,8 @@ class Rwa4Node(Node):
                     'quadrant': part.quadrant
                 }
                 self.parts.append(part_info)
+                
+            
 
         # Overriding the __str__ method to print the order information
         def __str__(self):
@@ -330,17 +354,23 @@ class Rwa4Node(Node):
         
         ''' This function prints the order information,tray pose and the part information.'''
         
-        print("Issue with the order")
-        print(self._orders)
+        # for i in range(len(self._orders)):
+        #     print('Order ID:' ,self._orders[i].id)
+        # print("Order ID")
+        tray_id = str(self._orders[self._order_id].tray_id)
+        part_ids = self._orders[self._order_id].parts
         
-        tray_id = str(self._orders[0].tray_id)
-        part_ids = self._orders[0].parts
+        print("Part ID",part_ids)
+        
+        
+        
         
                 
         # print(self.part_list)
         # print(tray_id)
         
         parts_needed = [False]*len(self._part_list)
+        
         
         for i in range(len(part_ids)):
             part_color = part_ids[i]["color"]
@@ -349,8 +379,10 @@ class Rwa4Node(Node):
             for j in range(len(self._part_list)):
                 if self._part_list[j]["color"] == part_color and self._part_list[j]["type"] == part_type:
                     parts_needed[j] = True 
+                    
+      
         
-        if (tray_id in self._table_dict.keys()) and all(parts_needed):
+        if (tray_id in self._table_dict.keys()): #and all(parts_needed):
             self._everything_ready = True
         
         if self._everything_ready:
@@ -358,7 +390,7 @@ class Rwa4Node(Node):
             self._order_print = True
             
             print(" ----------------------")
-            print(" --- Order " + str(self._orders[0].id) + " ---")
+            print(" --- Order " + str(self._orders[self._order_id].id) + " ---")
             print(" ----------------------")
             
             

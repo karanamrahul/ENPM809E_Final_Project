@@ -19,6 +19,7 @@
   <depend>tf2_ros</depend>
   <depend>orocos_kdl</depend>
   <depend>python3-pykdl</depend>
+  <exec_depend>ros2launch</exec_depend>
 
 
 
