@@ -28,7 +28,30 @@ class RobotCommanderInterface(Node):
 
     Args:
         Node (rclpy.node.Node): Parent class for ROS nodes
-
+        
+        
+    Methods:
+        _init_(self): Constructor for the RobotCommanderInterface class
+        self._subscription_orders: Subscriber for the "/ariac/orders" topic.
+        self._table1_camera_sub: Subscriber for the "/ariac/sensors/table1_camera/image" topic.
+        self._table2_camera_sub: Subscriber for the "/ariac/sensors/table2_camera/image" topic.
+        self._left_bin_camera_sub: Subscriber for the "/ariac/sensors/left_bins_camera/image" topic.
+        self._right_bin_camera_sub: Subscriber for the "/ariac/sensors/right_bins_camera/image" topic.
+        self._floor_robot_gripper_state_sub: Subscriber for /ariac/floor_robot_grpper/state topic.
+        self._robot_action_timer: Timer to call the _robot_action_callback function every 1 seconds.
+        self._start_competition_client: Client for the "/ariac/start_competition" service.
+        self._move_floor_robot_home_client: Service client for moving the floor robot to the home position.
+        self._goto_tool_changer_client: Service client for entering the gripper slot.
+        self._retract_from_tool_changer_client: Service client for exiting the gripper slot.
+        self._place_part_in_tray_client: Service client for placing a part in the tray.
+        self._pickup_tray_client: Service client for picking up the tray.
+        self._move_tray_to_agv_client: Service client for moving the tray to the Automated Guided Vehicle (AGV).
+        self._place_tray_on_agv_client: Service client for placing the tray on the AGV.
+        self._retract_from_agv_client: Service client for retracting the tray from the AGV.
+        self._pickup_part_client: Service client for picking up a part.
+        self._move_part_to_agv_client: Service client for moving the part to the AGV.
+        self._floor_gripper_enable: Service client for turning on/off the vacuum gripper on the floor robot.
+        self._floor_gripper_change: Service client for changing the gripper on the floor robot.
     Raises:
         KeyboardInterrupt: Exception raised when the user uses Ctrl+C to kill a process
     '''
@@ -42,11 +65,11 @@ class RobotCommanderInterface(Node):
             True
         )
 
-        self.set_parameters([sim_time])
+        self.set_parameters([sim_time]) # Set sim time to true
 
-        self.timer_group = MutuallyExclusiveCallbackGroup()
-        self.service_group = MutuallyExclusiveCallbackGroup()
-        self.order_group = MutuallyExclusiveCallbackGroup()
+        self.timer_group = MutuallyExclusiveCallbackGroup() # Create a callback group for the timer
+        self.service_group = MutuallyExclusiveCallbackGroup()   # Create a callback group for the services
+        self.order_group = MutuallyExclusiveCallbackGroup() # Create a callback group for the orders
 
         # Flag to indicate if the kit has been completed
         self._kit_completed = False
@@ -86,6 +109,7 @@ class RobotCommanderInterface(Node):
         self._colors = {"0": "Red", "1": "Green", "2": "Blue", "3": "Orange", "4": "Purple"}
         self._part_types = {"10": "Battery", "11":"Pump", "12": "Sensor", "13":"Regulator"}
         
+        # Parameters for the order ID
         parameter_file = os.path.join(
             get_package_share_directory('rwa4_group5'),
             'config',
@@ -101,9 +125,11 @@ class RobotCommanderInterface(Node):
         self._order_id = int(self._order_id)
         print("[WARN]",self._order_id)
 
-        
+#############################################################################################################
+# Subscribers & Clients    
+#############################################################################################################
         # Subscriber for the "/ariac/orders" topic.
-        self.subscription_orders = self.create_subscription(
+        self._subscription_orders = self.create_subscription(
             Order,
             '/ariac/orders',
             self._order_callback,
@@ -111,7 +137,7 @@ class RobotCommanderInterface(Node):
             callback_group=self.order_group)
         
         # Subscriber for the "/ariac/sensors/table1_camera/image" topic.
-        self.table1_camera_sub = self.create_subscription(
+        self._table1_camera_sub = self.create_subscription(
             AdvancedLogicalCameraImage,
             '/ariac/sensors/table1_camera/image',
             self._table_camera_1_callback,
@@ -120,7 +146,7 @@ class RobotCommanderInterface(Node):
         )
         
         # Subscriber for the "/ariac/sensors/table2_camera/image" topic.
-        self.table2_camera_sub = self.create_subscription(
+        self._table2_camera_sub = self.create_subscription(
             AdvancedLogicalCameraImage,
             '/ariac/sensors/table2_camera/image',
             self._table_camera_2_callback,
@@ -129,7 +155,7 @@ class RobotCommanderInterface(Node):
         )
         
         # Subscriber for the "/ariac/sensors/left_bins_camera/image" topic.
-        self.left_bin_camera_sub = self.create_subscription(
+        self._left_bin_camera_sub = self.create_subscription(
             AdvancedLogicalCameraImage,
             '/ariac/sensors/left_bins_camera/image',
             self._left_bin_camera_callback,
@@ -137,7 +163,7 @@ class RobotCommanderInterface(Node):
         )
         
         # Subscriber for the "/ariac/sensors/right_bins_camera/image" topic.
-        self.right_bin_camera_sub = self.create_subscription(
+        self._right_bin_camera_sub = self.create_subscription(
             AdvancedLogicalCameraImage,
             '/ariac/sensors/right_bins_camera/image',
             self._right_bin_camera_callback,
@@ -184,49 +210,49 @@ class RobotCommanderInterface(Node):
             callback_group=self.service_group)
         
         # Service client for entering the gripper slot
-        self.retract_from_tool_changer_client = self.create_client(
+        self._retract_from_tool_changer_client = self.create_client(
             ExitToolChanger, 
             '/competitor/floor_robot/exit_tool_changer',
             callback_group=self.service_group)
         
         # Service Client for placing the part in the tray
-        self.place_part_in_tray_client = self.create_client(
+        self._place_part_in_tray_client = self.create_client(
             PlacePartInTray,
             '/competitor/floor_robot/place_part_in_tray',
             callback_group=self.service_group)
 
         # Service Client for picking up the tray
-        self.pickup_tray_client = self.create_client(
+        self._pickup_tray_client = self.create_client(
             PickupTray,
             '/competitor/floor_robot/pickup_tray',
             callback_group=self.service_group)
 
         # Service Client for moving the tray to agv
-        self.move_tray_to_agv_client=self.create_client(
+        self._move_tray_to_agv_client=self.create_client(
             MoveTrayToAGV,
             '/competitor/floor_robot/move_tray_to_agv',
             callback_group=self.service_group)
 
         # Service Client for placing the tray on agv
-        self.place_tray_on_agv_client = self.create_client(
+        self._place_tray_on_agv_client = self.create_client(
             PlaceTrayOnAGV,
             '/competitor/floor_robot/place_tray_on_agv',
             callback_group=self.service_group)
 
         # Service Client for retracting the tray from agv
-        self.retract_from_agv_client = self.create_client(
+        self._retract_from_agv_client = self.create_client(
             RetractFromAGV,
             '/competitor/floor_robot/retract_from_agv',
             callback_group=self.service_group)
 
         # Service Client for picking up the part
-        self.pickup_part_client = self.create_client(
+        self._pickup_part_client = self.create_client(
             PickupPart,
             '/competitor/floor_robot/pickup_part',
             callback_group=self.service_group)
    
         # Service Client for moving the part to agv
-        self.move_part_to_agv_client = self.create_client(
+        self._move_part_to_agv_client = self.create_client(
             MovePartToAGV,
             '/competitor/floor_robot/move_part_to_agv',
             callback_group=self.service_group)
@@ -242,7 +268,9 @@ class RobotCommanderInterface(Node):
             "/ariac/floor_robot_change_gripper",
             callback_group=self.service_group)
     
-    ########## hw4 classes ##########
+#############################################################################################################
+# Callbacks and Classes to handle the orders
+#############################################################################################################
     
     class OrderClass:
         ''' This class represents the KittingOrder class for the RWA-4 assignment
@@ -321,7 +349,7 @@ class RobotCommanderInterface(Node):
                 
                 
             Methods:
-
+start_competition
                 -   __str__(self): Overriding the __str__ method to print the part information.
     
         '''
@@ -344,8 +372,6 @@ class RobotCommanderInterface(Node):
             except yaml.YAMLError:
                 self.get_logger().error("Unable to read configuration file")
                 return {}
-    
-    ######### hw4 functions #######
             
             
     def _order_callback(self, order):
@@ -593,7 +619,7 @@ class RobotCommanderInterface(Node):
 
    
 
-    def start_competition(self):
+    def _start_competition(self):
         '''
         Start the competition
         '''
@@ -611,7 +637,7 @@ class RobotCommanderInterface(Node):
         else:
             self.get_logger().warn('Unable to start competition')
 
-    def goto_tool_changer(self, robot, station, gripper_type):
+    def _goto_tool_changer(self, robot, station, gripper_type):
         '''
         Move the end effector inside the gripper slot.
 
@@ -658,7 +684,7 @@ class RobotCommanderInterface(Node):
             self.get_logger().error(f'Service call failed {future.exception()}')
             self.get_logger().error('Unable to move the robot to the tool changer')
     
-    def move_robot_home(self, robot_name):
+    def _move_robot_home(self, robot_name):
         '''Move one of the robots to its home position.
 
         Arguments:
@@ -683,7 +709,7 @@ class RobotCommanderInterface(Node):
             self.get_logger().info(f'Moved {robot_name} to home position')
         else:
             self.get_logger().warn(future.result().message)
-    def retract_from_tool_changer(self, robot, station, gripper_type):
+    def _retract_from_tool_changer(self, robot, station, gripper_type):
         '''
         Move the end effector outside the gripper slot.
 
@@ -707,7 +733,7 @@ class RobotCommanderInterface(Node):
         request.station = station
         request.gripper_type = gripper_type
 
-        future = self.retract_from_tool_changer_client.call_async(request)
+        future = self._retract_from_tool_changer_client.call_async(request)
 
         try:
             rclpy.spin_until_future_complete(self, future)
@@ -724,7 +750,7 @@ class RobotCommanderInterface(Node):
 
    
 
-    def place_part_in_tray(self, robot, agv, quadrant):
+    def _place_part_in_tray(self, robot, agv, quadrant):
         '''
         Places a part in the tray
 
@@ -743,7 +769,7 @@ class RobotCommanderInterface(Node):
         request.agv = agv
         request.quadrant = quadrant
 
-        future = self.place_part_in_tray_client.call_async(request)
+        future = self._place_part_in_tray_client.call_async(request)
 
         try:
             rclpy.spin_until_future_complete(self, future)
@@ -755,13 +781,13 @@ class RobotCommanderInterface(Node):
             response = future.result()
             if response:
                 self.get_logger().warn('Deactivate gripper')
-                self.set_floor_robot_gripper_state(False)
+                self._set_floor_robot_gripper_state(False)
                 self.wait(1)
                 self.get_logger().info('Part placed in tray')
             else:
                 self.get_logger().warn(f'Service call failed {future.exception()}')
 
-    def pickup_tray(self, robot, tray_id, tray_pose, tray_table):
+    def _pickup_tray(self, robot, tray_id, tray_pose, tray_table):
         """
         Picks up a tray from a table
 
@@ -783,7 +809,7 @@ class RobotCommanderInterface(Node):
         request.tray_pose = tray_pose
         request.tray_station = tray_table
 
-        future = self.pickup_tray_client.call_async(request)
+        future = self._pickup_tray_client.call_async(request)
 
         try:
             rclpy.spin_until_future_complete(self, future)
@@ -795,7 +821,7 @@ class RobotCommanderInterface(Node):
             response = future.result()
             if response:
                 self.get_logger().warn('Activate gripper')
-                self.set_floor_robot_gripper_state(True)
+                self._set_floor_robot_gripper_state(True)
                 self.wait(1)
                 self.get_logger().warn('Tray picked up')
             else:
@@ -804,7 +830,7 @@ class RobotCommanderInterface(Node):
             self.get_logger().warn(f'Service call failed {future.exception()}')
         
         
-    def move_tray_to_agv(self, robot, tray_pose, agv):
+    def _move_tray_to_agv(self, robot, tray_pose, agv):
         '''
         Moves the tray to the AGV
 
@@ -824,7 +850,7 @@ class RobotCommanderInterface(Node):
         request.tray_pose = tray_pose
         request.agv = agv
 
-        future = self.move_tray_to_agv_client.call_async(request)
+        future = self._move_tray_to_agv_client.call_async(request)
 
         try:
             rclpy.spin_until_future_complete(self, future)
@@ -840,7 +866,7 @@ class RobotCommanderInterface(Node):
                 self.get_logger().warn('Tray could not be moved to AGV')
         else:
             self.get_logger().error(f'Service call failed {future.exception()}')
-    def place_tray(self, robot,tray_id, agv):
+    def _place_tray(self, robot,tray_id, agv):
         '''
         Place the tray on the AGV.
 
@@ -864,7 +890,7 @@ class RobotCommanderInterface(Node):
         request.agv = agv
         request.tray_id=tray_id
 
-        future = self.place_tray_on_agv_client.call_async(request)
+        future = self._place_tray_on_agv_client.call_async(request)
 
         try:
             rclpy.spin_until_future_complete(self, future)
@@ -875,7 +901,7 @@ class RobotCommanderInterface(Node):
             response = future.result()
             if response:
                 self.get_logger().warn('Deactivate gripper')
-                self.set_floor_robot_gripper_state(False)
+                self._set_floor_robot_gripper_state(False)
                 self.get_logger().warn('Tray placed on AGV')
             else:
                 self.get_logger().error('Failed to place tray on AGV')
@@ -883,7 +909,7 @@ class RobotCommanderInterface(Node):
             self.get_logger().error(f'Service call failed {future.exception()}')
             self.get_logger().error('Unable to place tray on AGV')
 
-    def retract_from_agv(self, robot, agv):
+    def _retract_from_agv(self, robot, agv):
         '''
         Move the robot to retract from the AGV.
 
@@ -901,7 +927,7 @@ class RobotCommanderInterface(Node):
 
         request.agv = agv
 
-        future = self.retract_from_agv_client.call_async(request)
+        future = self._retract_from_agv_client.call_async(request)
 
         try:
             rclpy.spin_until_future_complete(self, future)
@@ -917,7 +943,7 @@ class RobotCommanderInterface(Node):
             self.get_logger().error('Unable to retract the robot from the AGV')
             
             
-    def pickup_part(self, robot, part_pose, part_type, part_color, bin_id):
+    def _pickup_part(self, robot, part_pose, part_type, part_color, bin_id):
         """
         Picks up a part from a bin using the floor robot.
 
@@ -944,7 +970,7 @@ class RobotCommanderInterface(Node):
         request.part_color = part_color
         request.bin_side = bin_id
 
-        future = self.pickup_part_client.call_async(request)
+        future = self._pickup_part_client.call_async(request)
 
         try:
             rclpy.spin_until_future_complete(self, future)
@@ -957,7 +983,7 @@ class RobotCommanderInterface(Node):
             if response:
                 self.get_logger().warn('Activate gripper')
                 self.wait(2)
-                self.set_floor_robot_gripper_state(True)
+                self._set_floor_robot_gripper_state(True)
                 self.get_logger().info('Part picked up successfully')
             else:
                 self.get_logger().warn('Failed to pick up part')
@@ -967,7 +993,7 @@ class RobotCommanderInterface(Node):
     from example_interfaces.msg import String
 
 
-    def move_part_to_agv(self, robot, part_pose, agv, quadrant):
+    def _move_part_to_agv(self, robot, part_pose, agv, quadrant):
         """
         Move a part to the specified AGV and quadrant.
 
@@ -990,7 +1016,7 @@ class RobotCommanderInterface(Node):
         request.agv = agv
         request.quadrant = quadrant
 
-        future = self.move_part_to_agv_client.call_async(request)
+        future = self._move_part_to_agv_client.call_async(request)
 
         try:
             rclpy.spin_until_future_complete(self, future)
@@ -1008,7 +1034,7 @@ class RobotCommanderInterface(Node):
             self.get_logger().error(f'Service call failed {future.exception()}')
             self.get_logger().error('Unable to move the part to the AGV')
             
-    def lock_agv(self, agv):
+    def _lock_agv(self, agv):
         """
         Lock the tray and parts on the AGV so they do not fall when the AGV is in motion.
 
@@ -1037,7 +1063,7 @@ class RobotCommanderInterface(Node):
             self.get_logger().error(f'Service call failed {future.exception()}')
             self.get_logger().error(f'Unable to lock AGV {agv}')
 
-    def move_agv_to_warehouse(self, agv):
+    def _move_agv_to_warehouse(self, agv):
         """
         Move the AGV to the warehouse.
 
@@ -1075,7 +1101,7 @@ class RobotCommanderInterface(Node):
         '''
         self._floor_robot_gripper_state = msg        
     
-    def set_floor_robot_gripper_state(self, state):
+    def _set_floor_robot_gripper_state(self, state):
         '''Set the gripper state of the floor robot.
 
         Arguments:
@@ -1140,7 +1166,16 @@ class RobotCommanderInterface(Node):
             except KeyboardInterrupt as kb_error:
                 raise KeyboardInterrupt from kb_error
             
+            
+            
+##############################################################################################################
+#                                    KITTING PROCESS                                                                        #
+##############################################################################################################            
     def _complete_kitting(self):
+        '''Complete the kitting task.
+        
+        '''
+        
         self.get_logger().warn('Kitting Started')
         tray_selected = self._table_needed[-1]
         tray_selected_id = tray_selected.id
@@ -1149,17 +1184,17 @@ class RobotCommanderInterface(Node):
         agv_selected = "agv" + str(self.agv_number)
         
         # Move robot home
-        self.move_robot_home("floor_robot")
+        self._move_robot_home("floor_robot")
         
         # Change gripper type
-        self.goto_tool_changer("floor_robot", tray_selected_table, "trays")
-        self.retract_from_tool_changer("floor_robot", tray_selected_table, "trays")
+        self._goto_tool_changer("floor_robot", tray_selected_table, "trays")
+        self._retract_from_tool_changer("floor_robot", tray_selected_table, "trays")
         
         # Pick and place tray
-        self.pickup_tray("floor_robot", tray_selected_id, tray_selected_pose, tray_selected_table)
-        self.move_tray_to_agv("floor_robot", tray_selected_pose, agv_selected)
-        self.place_tray("floor_robot", tray_selected_id, agv_selected)
-        self.retract_from_agv("floor_robot", agv_selected)
+        self._pickup_tray("floor_robot", tray_selected_id, tray_selected_pose, tray_selected_table)
+        self._move_tray_to_agv("floor_robot", tray_selected_pose, agv_selected)
+        self._place_tray("floor_robot", tray_selected_id, agv_selected)
+        self._retract_from_agv("floor_robot", agv_selected)
         
         if self._parts_needed[0]["bin"] == "right_bins":
             tray_selected_table = "kts2"
@@ -1167,22 +1202,22 @@ class RobotCommanderInterface(Node):
             tray_selected_table = "kts1"
         
         # Change gripper type
-        self.goto_tool_changer("floor_robot", tray_selected_table, "parts")
-        self.retract_from_tool_changer("floor_robot", tray_selected_table, "parts")
+        self._goto_tool_changer("floor_robot", tray_selected_table, "parts")
+        self._retract_from_tool_changer("floor_robot", tray_selected_table, "parts")
         
         for part in self._parts_needed:
             # Pick and place parts
-            self.pickup_part("floor_robot", part["pose"], part["type"], part["color"], part["bin"])
-            self.move_part_to_agv("floor_robot", part["pose"], agv_selected, part["quadrant"])
-            self.place_part_in_tray("floor_robot", agv_selected, part["quadrant"])
-            self.retract_from_agv("floor_robot", agv_selected)
+            self._pickup_part("floor_robot", part["pose"], part["type"], part["color"], part["bin"])
+            self._move_part_to_agv("floor_robot", part["pose"], agv_selected, part["quadrant"])
+            self._place_part_in_tray("floor_robot", agv_selected, part["quadrant"])
+            self._retract_from_agv("floor_robot", agv_selected)
             
         # move robot home
-        self.move_robot_home("floor_robot")
+        self._move_robot_home("floor_robot")
 
         # move agv to warehouse
-        self.lock_agv(str(self.agv_number))
-        self.move_agv_to_warehouse(str(self.agv_number))
+        self._lock_agv(str(self.agv_number))
+        self._move_agv_to_warehouse(str(self.agv_number))
         
         return
         
@@ -1193,10 +1228,9 @@ class RobotCommanderInterface(Node):
         Callback for the timer that triggers the robot actions
         '''
         
-        # complete_order_received = self._table1_tray_first_msg and self._table2_tray_first_msg and self._left_bin_first_msg and self._right_bin_first_msg
         
         if self._competition_state == CompetitionState.READY and not self._competition_started:
-                self.start_competition()
+                self._start_competition()
                 
         if self._kit_completed:
             self.get_logger().info('Kit completed')
@@ -1224,9 +1258,10 @@ class RobotCommanderInterface(Node):
 '''
 To test this script, run the following commands in separate terminals:
 
-- ros2 launch robot_commander robot_commander.launch.py
+
 - ros2 run robot_commander floor_robot_main.py
 - ros2 launch ariac_gazebo ariac.launch.py trial_name:=final
+- ros2 launch rwa4_group5 rwa4_node.launch.py
 '''
 
 import rclpy
