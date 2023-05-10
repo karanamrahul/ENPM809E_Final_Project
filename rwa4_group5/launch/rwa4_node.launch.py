@@ -16,7 +16,7 @@ def generate_launch_description():
     ld = LaunchDescription() # instantiate a Launchdescription object
     publisher_node = Node( # declare your Node
     package="rwa4_group5", # package name
-    executable="rwa4",
+    executable="competition_interface",
     output = 'screen',
     parameters=[parameter_file],
     # executable as set in setup.py
@@ -25,16 +25,4 @@ def generate_launch_description():
     return ld # return the LaunchDescription object
   
   
-
-# if not os.path.exists(parameter_file):
-#         rclpy.logging.get_logger('Launch File').fatal(
-#             f"Trial configuration Order not found in pkg_share/config/")
-#         sys.exit()
-
-
-
-# publisher_node = Node(
-#     package="rwa4_group5",
-#     executable="publisher_node",
-#     parameters=[parameter_file])
 

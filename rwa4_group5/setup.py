@@ -23,7 +23,7 @@ setup(
     tests_require=['pytest'],
     entry_points={
         'console_scripts': [
-        'rwa4 = rwa4_group5.rwa4_node:main',
+        'competition_interface = rwa4_group5.rwa4_node:main',
         ],
     },
 )

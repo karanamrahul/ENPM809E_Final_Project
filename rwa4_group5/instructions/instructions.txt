@@ -1,1 +1,4 @@
- ros2 run rwa4_group5 rwa4
+To RUN the demo. Please place the demo.sh file in /src directory colcon build and then run sh ./demo.sh
+
+cd group_ws/
+sh ./demo.sh
